@@ -32,7 +32,7 @@ from skimage.measure import label, regionprops
 
 
 # --- USER PARAMETERS ---
-input_folder   = r"D:/DNA_damage/stardist_test"
+input_folder   = r"D:/DNA_damage/stardist_test2"
 pattern        = "*.tif"
 bg_disk_radius = 30      # for white top‑hat (should exceed foci diameter)
 min_foci_area  = 2       # drop connected components smaller than this
@@ -94,15 +94,15 @@ for filepath in files:
         cell_corr = cell - bg_val
         cell_corr[cell_corr < 0] = 0
 
-        # 5. Save the overlay image
-        fig, ax = plt.subplots(1,1, figsize=(6,6))
-        # show normalized image
-        ax.imshow(cell_corr if cell_corr.ndim==2 else cell_corr[...,0], cmap='gray')
+        # # 5. Save the overlay image
+        # fig, ax = plt.subplots(1,1, figsize=(6,6))
+        # # show normalized image
+        # ax.imshow(cell_corr if cell_corr.ndim==2 else cell_corr[...,0], cmap='gray')
 
         # c) Otsu thresholding
         if cell_corr.max() > 0:
             thr = threshold_otsu(cell_corr)
-            foci_mask = cell_corr > 0.1
+            foci_mask = cell_corr > thr
         else:
             foci_mask = np.zeros_like(cell_corr, dtype=bool)
 
@@ -140,7 +140,7 @@ for filepath in files:
         cell_corr[cell_corr < 0] = 0
         if cell_corr.max() > 0:
             thr = threshold_otsu(cell_corr)
-            foci_mask = cell_corr > 0.1
+            foci_mask = cell_corr > thr
         else:
             foci_mask = np.zeros_like(cell_corr, dtype=bool)
         foci_mask = remove_small_objects(foci_mask, min_size=min_foci_area)
