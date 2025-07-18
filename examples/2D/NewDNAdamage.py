@@ -32,6 +32,20 @@ min_cell_area = 50     # px
 min_foci_area = 2      # px
 # — End parameters —
 
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # Use GPU 0; change if needed
+import tensorflow as tf
+physical_devices = tf.config.list_physical_devices('GPU')
+if physical_devices:
+    try:
+        for gpu in physical_devices:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        print(f"Using GPU(s): {[d.name for d in physical_devices]}")
+    except Exception as e:
+        print(f"Could not set GPU memory growth: {e}")
+else:
+    print("No GPU found, running on CPU.")
+
 # StarDist model
 model = StarDist2D.from_pretrained('2D_demo')
 
@@ -92,12 +106,17 @@ for day in days:
             # count foci
             fcount = len(regionprops(label(fmask)))
 
+            # proliferation intensity (mean yellow within mask)
+            cell_yellow = region.intensity_image if region.intensity_image.shape == region.image.shape else yellow_n[region.slice][region.image]
+            prolif_int = cell_yellow[region.image].mean()
+
             records.append({
                 'file': base,
                 'dose': dose,
                 'time': time_pt,
                 'cell_id': cid,
-                'foci_count': fcount
+                'foci_count': fcount,
+                'prolif_intensity': prolif_int
             })
 
         # --- Save overlay image: segmentation on yellow channel ---
@@ -205,4 +224,60 @@ plt.title('Foci-count distributions by Time & Dose')
 plt.legend(title='Dose', bbox_to_anchor=(1.05,1), loc='upper left')
 plt.tight_layout()
 plt.savefig(os.path.join(input_folder, 'foci_boxplot_time_dose.png'), dpi=300)
+plt.close()
+
+# 3) Average proliferation intensity vs time for each dose
+plt.figure(figsize=(6,4))
+for d in sorted(df['dose'].unique()):
+    sub = df[df['dose']==d]
+    meanp = sub.groupby('time')['prolif_intensity'].mean()
+    plt.plot(meanp.index, meanp.values, '-o', label=f'{d} μM')
+plt.xlabel('Time (days)')
+plt.ylabel('Avg proliferation intensity')
+plt.title('Average Proliferation Intensity vs Time')
+plt.legend(title='Dose')
+plt.tight_layout()
+plt.savefig(os.path.join(input_folder, 'avg_prolif_vs_time.png'), dpi=300)
+plt.close()
+
+# 4) Boxplot of proliferation intensity by time & dose with error bars
+plt.figure(figsize=(8,6))
+sns.boxplot(
+    data=df,
+    x='time',
+    y='prolif_intensity',
+    hue='dose',
+    palette='Set2',
+    showfliers=False
+)
+sns.pointplot(
+    data=df,
+    x='time',
+    y='prolif_intensity',
+    hue='dose',
+    dodge=0.4,
+    join=False,
+    palette='dark:k',
+    errorbar='sd',
+    markers='D',
+    scale=0.7,
+    errwidth=1.5,
+    capsize=0.1
+)
+plt.xlabel('Time (days)')
+plt.ylabel('Proliferation intensity')
+plt.title('Proliferation Intensity by Time & Dose')
+plt.legend(title='Dose', bbox_to_anchor=(1.05,1), loc='upper left')
+plt.tight_layout()
+plt.savefig(os.path.join(input_folder, 'prolif_boxplot_time_dose.png'), dpi=300)
+plt.close()
+
+# 5) Scatter plot: proliferation intensity vs DNA foci count
+plt.figure(figsize=(6,5))
+plt.scatter(df['prolif_intensity'], df['foci_count'], alpha=0.6, s=20)
+plt.xlabel('Proliferation intensity')
+plt.ylabel('DNA foci count')
+plt.title('Proliferation Intensity vs DNA Foci Count')
+plt.tight_layout()
+plt.savefig(os.path.join(input_folder, 'prolif_vs_foci_scatter.png'), dpi=300)
 plt.close()
