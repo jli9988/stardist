@@ -63,7 +63,7 @@ for day in days:
 
             # normalize to fixed range (0, 65535) for uint16 images
             red_n    = normalize(red_smooth,    0, 98, axis=None)
-            orange_n = normalize(orange_smooth, 0, 98, axis=None)
+            orange_n = orange_smooth
             bf_n     = normalize(bf_smooth,     0, 98, axis=None)
 
             # segment
@@ -189,4 +189,20 @@ sns.boxplot(data=df2, x='day', y='foci_count', hue='fbs')
 plt.title('DNA Damage (Foci Count) by Day and FBS')
 plt.tight_layout()
 plt.savefig(os.path.join(input_folder, 'foci_by_day_fbs.png'), dpi=300)
+plt.close()
+
+# Violin plot: Proliferation intensity by day and FBS
+plt.figure(figsize=(8,5))
+sns.violinplot(data=df2, x='day', y='prolif_intensity', hue='fbs', split=True, inner='quartile')
+plt.title('Proliferation Intensity Distribution by Day and FBS')
+plt.tight_layout()
+plt.savefig(os.path.join(input_folder, 'prolif_violin_by_day_fbs.png'), dpi=300)
+plt.close()
+
+# Violin plot: DNA damage (foci count) by day and FBS
+plt.figure(figsize=(8,5))
+sns.violinplot(data=df2, x='day', y='foci_count', hue='fbs', split=True, inner='quartile')
+plt.title('DNA Damage (Foci Count) Distribution by Day and FBS')
+plt.tight_layout()
+plt.savefig(os.path.join(input_folder, 'foci_violin_by_day_fbs.png'), dpi=300)
 plt.close()
